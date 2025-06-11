@@ -1,0 +1,67 @@
+services:
+  nginx:
+    image: nginx:latest
+    container_name: botox-nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    depends_on:
+      - botox-frontend
+      - botox-backend
+      - stable-diffusion
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/well-known:/usr/share/nginx/html/.well-known
+      - ./cert:/etc/ssl/cert
+      - ./private:/etc/ssl/private
+    networks:
+      - botox-network
+
+  # botox-frontend:
+  #   build:
+  #     context: ./botox-front-end
+  #   container_name: botox-frontend
+  botox-frontend:
+    build:
+      context: ./botox-front-end
+    container_name: botox-frontend
+    expose:
+      - "80"
+    networks:
+      - botox-network
+
+
+  botox-backend:
+    build:
+      context: ./Botox-Injection-Assistant
+    container_name: botox-backend
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./uploads:/uploads  
+    networks:
+      - botox-network
+
+  stable-diffusion:
+    build:
+      context: ./sdig   
+    container_name: stable-diffusion
+    ports:
+      - "8888:8888"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: "nvidia"
+              count: all
+              capabilities: [gpu]
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+    networks:
+      - botox-network
+
+
+
+networks:
+  botox-network:
+    driver: bridge
